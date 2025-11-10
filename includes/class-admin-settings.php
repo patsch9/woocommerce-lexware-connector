@@ -40,17 +40,20 @@ class WLC_Admin_Settings {
     public function sanitize_api_key_on_save($new_value, $old_value) {
         $new_value = trim($new_value);
 
-        if (empty($new_value) && !empty($old_value)) {
-            return $old_value;
+        // Erlaube leeren Wert (API-Key löschen)
+        if (empty($new_value)) {
+            return '';
         }
 
-        if (!empty($new_value) && !preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i', $new_value)) {
+        // Validiere UUID-Format für Lexware API Keys
+        if (!preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i', $new_value)) {
             add_settings_error(
                 'wlc_api_key',
                 'invalid_api_key',
-                __('Ungültiges API-Key Format. Lexware API Keys müssen im UUID-Format sein.', 'woo-lexware-connector'),
+                __('Ungültiges API-Key Format. Lexware API Keys müssen im UUID-Format sein (z.B. 12345678-1234-1234-1234-123456789abc).', 'woo-lexware-connector'),
                 'error'
             );
+            // Bei Fehler alten Wert behalten
             return $old_value;
         }
 
@@ -59,7 +62,11 @@ class WLC_Admin_Settings {
 
     public function register_settings() {
         // API-Einstellungen
-        register_setting('wlc_api_settings', 'wlc_api_key');
+        register_setting('wlc_api_settings', 'wlc_api_key', array(
+            'type' => 'string',
+            'sanitize_callback' => 'sanitize_text_field',
+            'default' => ''
+        ));
         register_setting('wlc_api_settings', 'wlc_order_statuses');
         register_setting('wlc_api_settings', 'wlc_retry_attempts');
 
@@ -181,8 +188,8 @@ class WLC_Admin_Settings {
                     <label for="wlc_api_key"><?php _e('Lexware API Key', 'woo-lexware-connector'); ?></label>
                 </th>
                 <td>
-                    <div style="position: relative; display: inline-block; width: 100%;">
-                        <input type="password" 
+                    <div style="position: relative; display: inline-block; width: 100%; max-width: 500px;">
+                        <input type="text" 
                                id="wlc_api_key" 
                                name="wlc_api_key" 
                                value="<?php echo esc_attr($api_key); ?>" 
@@ -190,11 +197,12 @@ class WLC_Admin_Settings {
                                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                                autocomplete="off"
                                spellcheck="false"
-                               style="font-family: monospace; letter-spacing: 1px; padding-right: 45px;">
+                               style="font-family: monospace; letter-spacing: 1px; padding-right: 45px; width: 100%;">
 
                         <button type="button" 
                                 class="button button-secondary wlc-toggle-api-key" 
-                                style="position: absolute; right: 5px; top: 1px; height: 28px; padding: 0 8px;">
+                                style="position: absolute; right: 5px; top: 1px; height: 28px; padding: 0 8px;"
+                                title="<?php esc_attr_e('API-Key anzeigen/verbergen', 'woo-lexware-connector'); ?>">
                             <span class="dashicons dashicons-visibility" style="line-height: 28px;"></span>
                         </button>
                     </div>
@@ -202,16 +210,22 @@ class WLC_Admin_Settings {
                     <?php if (!empty($api_key)): ?>
                         <p class="description" style="color: green; margin-top: 8px;">
                             ✓ <?php _e('API Key gespeichert', 'woo-lexware-connector'); ?>
-                            <code><?php echo substr($api_key, 0, 4) . str_repeat('•', 28) . substr($api_key, -4); ?></code>
+                            <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;"><?php 
+                                echo substr($api_key, 0, 8) . '-****-****-****-' . substr($api_key, -12); 
+                            ?></code>
                         </p>
                     <?php else: ?>
-                        <p class="description" style="color: red; margin-top: 8px;">
+                        <p class="description" style="color: #d63638; margin-top: 8px;">
                             ✗ <?php _e('Kein API Key konfiguriert', 'woo-lexware-connector'); ?>
                         </p>
                     <?php endif; ?>
 
-                    <p class="description">
-                        <a href="https://app.lexware.de/settings/#/public-api" target="_blank">API Key erstellen</a>
+                    <p class="description" style="margin-top: 8px;">
+                        <?php _e('Format:', 'woo-lexware-connector'); ?> 
+                        <code>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code><br>
+                        <a href="https://app.lexware.de/settings/#/public-api" target="_blank" rel="noopener">
+                            <?php _e('→ API Key in Lexware erstellen', 'woo-lexware-connector'); ?>
+                        </a>
                     </p>
                 </td>
             </tr>
@@ -249,22 +263,49 @@ class WLC_Admin_Settings {
                     <input type="number" id="wlc_retry_attempts" name="wlc_retry_attempts" 
                            value="<?php echo esc_attr(get_option('wlc_retry_attempts', '3')); ?>" 
                            min="0" max="10" class="small-text">
+                    <p class="description">
+                        <?php _e('Anzahl der automatischen Wiederholungsversuche bei API-Fehlern', 'woo-lexware-connector'); ?>
+                    </p>
                 </td>
             </tr>
         </table>
 
         <script>
         jQuery(document).ready(function($) {
-            $('.wlc-toggle-api-key').on('click', function(e) {
+            var input = $('#wlc_api_key');
+            var button = $('.wlc-toggle-api-key');
+            var icon = button.find('.dashicons');
+            var isVisible = false;
+
+            // Initial als Passwort-Feld maskieren wenn Wert vorhanden
+            if (input.val().length > 0) {
+                input.attr('type', 'password');
+            }
+
+            button.on('click', function(e) {
                 e.preventDefault();
-                var input = $('#wlc_api_key');
-                var icon = $(this).find('.dashicons');
-                if (input.attr('type') === 'password') {
+                isVisible = !isVisible;
+                
+                if (isVisible) {
                     input.attr('type', 'text');
                     icon.removeClass('dashicons-visibility').addClass('dashicons-hidden');
                 } else {
                     input.attr('type', 'password');
                     icon.removeClass('dashicons-hidden').addClass('dashicons-visibility');
+                }
+            });
+
+            // Bei Focus Text-Typ setzen für einfaches Editieren
+            input.on('focus', function() {
+                if (!isVisible) {
+                    $(this).attr('type', 'text');
+                }
+            });
+
+            // Bei Blur wieder maskieren wenn Toggle nicht aktiv
+            input.on('blur', function() {
+                if (!isVisible && $(this).val().length > 0) {
+                    $(this).attr('type', 'password');
                 }
             });
         });
