@@ -38,13 +38,11 @@ class WLC_Admin_Settings {
     }
 
     public function sanitize_api_key_on_save($new_value, $old_value) {
-        $new_value = trim($new_value);
-        // Erlaube leeren Wert (API-Key löschen)
-        if (empty($new_value)) {
-            return '';
+        // Wenn Feld leer bleibt, alten Wert beibehalten (nicht klartext anzeigen)
+        if ($new_value === null || trim((string)$new_value) === '') {
+            return (string)$old_value;
         }
-        // Kein spezifisches Format prüfen, nur Leerzeichen entfernen und WordPress-sicher machen
-        return sanitize_text_field($new_value);
+        return sanitize_text_field(trim((string)$new_value));
     }
 
     public function register_settings() {
@@ -159,32 +157,25 @@ class WLC_Admin_Settings {
                 </th>
                 <td>
                     <div style="position: relative; display: inline-block; width: 100%; max-width: 500px;">
-                        <input type="text" 
-                               id="wlc_api_key" 
-                               name="wlc_api_key" 
-                               value="<?php echo esc_attr($api_key); ?>" 
+                        <input type="password"
+                               id="wlc_api_key"
+                               name="wlc_api_key"
+                               value=""
                                class="regular-text"
-                               placeholder="API-Schlüssel eingeben"
+                               placeholder="<?php echo esc_attr($api_key ? __('Gespeichert – leer lassen, um nicht zu ändern', 'woo-lexware-connector') : __('API-Schlüssel eingeben', 'woo-lexware-connector')); ?>"
                                autocomplete="off"
                                spellcheck="false"
                                style="font-family: monospace; letter-spacing: 1px; padding-right: 45px; width: 100%;">
-                        <button type="button" 
-                                class="button button-secondary wlc-toggle-api-key" 
+                        <button type="button"
+                                class="button button-secondary wlc-toggle-api-key"
                                 style="position: absolute; right: 5px; top: 1px; height: 28px; padding: 0 8px;"
                                 title="<?php esc_attr_e('API-Key anzeigen/verbergen', 'woo-lexware-connector'); ?>">
                             <span class="dashicons dashicons-visibility" style="line-height: 28px;"></span>
                         </button>
                     </div>
-                    <?php if (!empty($api_key)): ?>
-                        <p class="description" style="color: green; margin-top: 8px;">
-                            ✓ <?php _e('API Key gespeichert', 'woo-lexware-connector'); ?>
-                            <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px; word-break: break-all;"><?php echo esc_html($api_key); ?></code>
-                        </p>
-                    <?php else: ?>
-                        <p class="description" style="color: #d63638; margin-top: 8px;">
-                            ✗ <?php _e('Kein API Key konfiguriert', 'woo-lexware-connector'); ?>
-                        </p>
-                    <?php endif; ?>
+                    <p class="description" style="margin-top: 8px;">
+                        <?php echo $api_key ? __('Ein API-Key ist gespeichert. Gib einen neuen ein, um ihn zu ersetzen – leer lassen, um nichts zu ändern.', 'woo-lexware-connector') : __('Bitte API-Key speichern.', 'woo-lexware-connector'); ?>
+                    </p>
                     <p class="description" style="margin-top: 8px;">
                         <a href="https://app.lexware.de/settings/#/public-api" target="_blank" rel="noopener">
                             <?php _e('API Key in Lexware erstellen', 'woo-lexware-connector'); ?>
@@ -207,7 +198,7 @@ class WLC_Admin_Settings {
                         $checked = in_array($status, $selected_statuses) ? 'checked' : '';
                         ?>
                         <label style="display: block; margin: 5px 0;">
-                            <input type="checkbox" name="wlc_order_statuses[]" 
+                            <input type="checkbox" name="wlc_order_statuses[]"
                                    value="<?php echo esc_attr($status); ?>" <?php echo $checked; ?>>
                             <?php echo esc_html($label); ?>
                         </label>
@@ -221,8 +212,8 @@ class WLC_Admin_Settings {
                     <label for="wlc_retry_attempts"><?php _e('Wiederholungsversuche', 'woo-lexware-connector'); ?></label>
                 </th>
                 <td>
-                    <input type="number" id="wlc_retry_attempts" name="wlc_retry_attempts" 
-                           value="<?php echo esc_attr(get_option('wlc_retry_attempts', '3')); ?>" 
+                    <input type="number" id="wlc_retry_attempts" name="wlc_retry_attempts"
+                           value="<?php echo esc_attr(get_option('wlc_retry_attempts', '3')); ?>"
                            min="0" max="10" class="small-text">
                     <p class="description">
                         <?php _e('Anzahl der automatischen Wiederholungsversuche bei API-Fehlern', 'woo-lexware-connector'); ?>
@@ -236,9 +227,6 @@ class WLC_Admin_Settings {
             var button = $('.wlc-toggle-api-key');
             var icon = button.find('.dashicons');
             var isVisible = false;
-            if (input.val().length > 0) {
-                input.attr('type', 'password');
-            }
             button.on('click', function(e) {
                 e.preventDefault();
                 isVisible = !isVisible;
@@ -248,16 +236,6 @@ class WLC_Admin_Settings {
                 } else {
                     input.attr('type', 'password');
                     icon.removeClass('dashicons-hidden').addClass('dashicons-visibility');
-                }
-            });
-            input.on('focus', function() {
-                if (!isVisible) {
-                    $(this).attr('type', 'text');
-                }
-            });
-            input.on('blur', function() {
-                if (!isVisible && $(this).val().length > 0) {
-                    $(this).attr('type', 'password');
                 }
             });
         });
@@ -273,8 +251,8 @@ class WLC_Admin_Settings {
                     <label for="wlc_invoice_title"><?php _e('Rechnungstitel', 'woo-lexware-connector'); ?></label>
                 </th>
                 <td>
-                    <input type="text" id="wlc_invoice_title" name="wlc_invoice_title" 
-                           value="<?php echo esc_attr(get_option('wlc_invoice_title', 'Rechnung')); ?>" 
+                    <input type="text" id="wlc_invoice_title" name="wlc_invoice_title"
+                           value="<?php echo esc_attr(get_option('wlc_invoice_title', 'Rechnung')); ?>"
                            class="regular-text">
                     <p class="description">Shortcodes: [order_number], [order_date], [customer_name]</p>
                 </td>
@@ -284,7 +262,7 @@ class WLC_Admin_Settings {
                     <label for="wlc_invoice_introduction"><?php _e('Einleitungstext', 'woo-lexware-connector'); ?></label>
                 </th>
                 <td>
-                    <textarea id="wlc_invoice_introduction" name="wlc_invoice_introduction" 
+                    <textarea id="wlc_invoice_introduction" name="wlc_invoice_introduction"
                               rows="3" class="large-text"><?php echo esc_textarea(get_option('wlc_invoice_introduction', 'Vielen Dank für Ihre Bestellung [order_number] vom [order_date].')); ?></textarea>
                     <p class="description">Shortcodes: [order_number], [order_date], [customer_name], [customer_company], [total], [payment_method]</p>
                 </td>
@@ -294,7 +272,7 @@ class WLC_Admin_Settings {
                     <label for="wlc_payment_terms"><?php _e('Standard Zahlungsbedingungen', 'woo-lexware-connector'); ?></label>
                 </th>
                 <td>
-                    <textarea id="wlc_payment_terms" name="wlc_payment_terms" 
+                    <textarea id="wlc_payment_terms" name="wlc_payment_terms"
                               rows="3" class="large-text"><?php echo esc_textarea(get_option('wlc_payment_terms', 'Zahlbar innerhalb von 14 Tagen ohne Abzug.')); ?></textarea>
                 </td>
             </tr>
@@ -303,8 +281,8 @@ class WLC_Admin_Settings {
                     <label for="wlc_payment_due_days"><?php _e('Standard Zahlungsziel (Tage)', 'woo-lexware-connector'); ?></label>
                 </th>
                 <td>
-                    <input type="number" id="wlc_payment_due_days" name="wlc_payment_due_days" 
-                           value="<?php echo esc_attr(get_option('wlc_payment_due_days', '14')); ?>" 
+                    <input type="number" id="wlc_payment_due_days" name="wlc_payment_due_days"
+                           value="<?php echo esc_attr(get_option('wlc_payment_due_days', '14')); ?>"
                            min="0" max="365" class="small-text">
                 </td>
             </tr>
@@ -313,7 +291,7 @@ class WLC_Admin_Settings {
                     <label for="wlc_closing_text"><?php _e('Schlusstext', 'woo-lexware-connector'); ?></label>
                 </th>
                 <td>
-                    <textarea id="wlc_closing_text" name="wlc_closing_text" 
+                    <textarea id="wlc_closing_text" name="wlc_closing_text"
                               rows="3" class="large-text"><?php echo esc_textarea(get_option('wlc_closing_text', 'Vielen Dank für Ihr Vertrauen.')); ?></textarea>
                 </td>
             </tr>
@@ -323,7 +301,7 @@ class WLC_Admin_Settings {
                 </th>
                 <td>
                     <label>
-                        <input type="checkbox" id="wlc_finalize_immediately" name="wlc_finalize_immediately" 
+                        <input type="checkbox" id="wlc_finalize_immediately" name="wlc_finalize_immediately"
                                value="yes" <?php checked(get_option('wlc_finalize_immediately', 'yes'), 'yes'); ?>>
                         <?php _e('Ja, Rechnungen direkt im Status "open" erstellen', 'woo-lexware-connector'); ?>
                     </label>
@@ -371,7 +349,7 @@ class WLC_Admin_Settings {
                     <tr>
                         <td>
                             <strong><?php echo esc_html($gateway->get_title()); ?></strong><br>
-                            <code style="font-size: 11px; color: #666;"><?php echo esc_html($gateway_id); ?></code>
+                            <code style="font-size: 11px; color: #666;"> <?php echo esc_html($gateway_id); ?></code>
                         </td>
                         <td>
                             <input type="text" 
@@ -397,7 +375,7 @@ class WLC_Admin_Settings {
         </p>
         <?php
     }
-
+    
     private function render_sync_tab() {
         ?>
         <table class="form-table">
@@ -537,7 +515,7 @@ class WLC_Admin_Settings {
                 <?php endif; ?>
             </tbody>
         </table>
-        <h2 style="margin-top: 40px;"><?php _e('Fehler-Log (letzte 20)', 'woo-lexware-connector'); ?></h2>
+        <h2 style="margin-top: 40px;"> <?php _e('Fehler-Log (letzte 20)', 'woo-lexware-connector'); ?></h2>
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
