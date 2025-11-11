@@ -155,6 +155,9 @@ class WLC_WooCommerce_Integration {
         
         <script>
         jQuery(document).ready(function($) {
+            function rateLimited(action) {
+                return true; // clientseitig nur Platzhalter; serverseitig wird limitiert
+            }
             // Rechnung erstellen
             $('.wlc-create-invoice').on('click', function() {
                 var orderId = $(this).data('order-id');
@@ -162,6 +165,7 @@ class WLC_WooCommerce_Integration {
                 if (!confirm('<?php _e('Rechnung jetzt für diese Bestellung erstellen?', 'woo-lexware-connector'); ?>')) { 
                     return; 
                 }
+                if (!rateLimited('create_invoice')) { return; }
                 button.prop('disabled', true).text('<?php _e('Wird erstellt...', 'woo-lexware-connector'); ?>');
                 $.ajax({
                     url: ajaxurl,
@@ -193,6 +197,7 @@ class WLC_WooCommerce_Integration {
                 }
                 var orderId = $(this).data('order-id');
                 var button = $(this);
+                if (!rateLimited('void_invoice')) { return; }
                 button.prop('disabled', true).text('<?php _e('Wird storniert...', 'woo-lexware-connector'); ?>');
                 $.ajax({
                     url: ajaxurl,
@@ -225,6 +230,7 @@ class WLC_WooCommerce_Integration {
                 if (!confirm('<?php _e('Rechnung jetzt per E-Mail an den Kunden senden?', 'woo-lexware-connector'); ?>')) {
                     return;
                 }
+                if (!rateLimited('send_invoice_email')) { return; }
                 
                 button.prop('disabled', true).text('<?php _e('Wird gesendet...', 'woo-lexware-connector'); ?>');
                 
@@ -259,6 +265,7 @@ class WLC_WooCommerce_Integration {
                 if (!confirm('<?php _e('Verknüpfung zur Lexware-Rechnung wirklich löschen?\n\nDie Rechnung in Lexware bleibt bestehen, aber du kannst eine neue Rechnung für diese Bestellung erstellen.', 'woo-lexware-connector'); ?>')) {
                     return;
                 }
+                if (!rateLimited('unlink_invoice')) { return; }
                 
                 button.prop('disabled', true).text('<?php _e('Wird gelöscht...', 'woo-lexware-connector'); ?>');
                 
@@ -346,6 +353,10 @@ function wlc_ajax_manual_create_invoice() {
     if (!current_user_can('manage_woocommerce')) {
         wp_send_json_error(array('message' => __('Keine Berechtigung', 'woo-lexware-connector')));
     }
+    // Rate-Limiting
+    if (class_exists('WLC_Security') && !WLC_Security::check_rate_limit('manual_create_invoice', get_current_user_id(), 5, 60)) {
+        wp_send_json_error(array('message' => __('Zu viele Anfragen. Bitte warten.', 'woo-lexware-connector')));
+    }
     $order_id = intval($_POST['order_id']);
     $order = wc_get_order($order_id);
     if (!$order) {
@@ -375,6 +386,9 @@ function wlc_ajax_manual_void_invoice() {
     if (!current_user_can('manage_woocommerce')) {
         wp_send_json_error(array('message' => __('Keine Berechtigung', 'woo-lexware-connector')));
     }
+    if (class_exists('WLC_Security') && !WLC_Security::check_rate_limit('manual_void_invoice', get_current_user_id(), 5, 60)) {
+        wp_send_json_error(array('message' => __('Zu viele Anfragen. Bitte warten.', 'woo-lexware-connector')));
+    }
     $order_id = intval($_POST['order_id']);
     $order = wc_get_order($order_id);
     if (!$order) {
@@ -398,6 +412,9 @@ function wlc_ajax_send_invoice_email() {
     
     if (!current_user_can('manage_woocommerce')) {
         wp_send_json_error(array('message' => __('Keine Berechtigung', 'woo-lexware-connector')));
+    }
+    if (class_exists('WLC_Security') && !WLC_Security::check_rate_limit('manual_send_invoice_email', get_current_user_id(), 5, 60)) {
+        wp_send_json_error(array('message' => __('Zu viele Anfragen. Bitte warten.', 'woo-lexware-connector')));
     }
     
     $order_id = intval($_POST['order_id']);
@@ -434,6 +451,9 @@ function wlc_ajax_unlink_invoice() {
     if (!current_user_can('manage_woocommerce')) {
         wp_send_json_error(array('message' => __('Keine Berechtigung', 'woo-lexware-connector')));
     }
+    if (class_exists('WLC_Security') && !WLC_Security::check_rate_limit('manual_unlink_invoice', get_current_user_id(), 5, 60)) {
+        wp_send_json_error(array('message' => __('Zu viele Anfragen. Bitte warten.', 'woo-lexware-connector')));
+    }
     
     $order_id = intval($_POST['order_id']);
     $order = wc_get_order($order_id);
@@ -464,6 +484,10 @@ function wlc_ajax_download_invoice_pdf() {
     if (!wp_verify_nonce($_GET['_wpnonce'], 'wlc_download_pdf_' . $order_id)) {
         wp_die(__('Ungültiger Sicherheitsschlüssel', 'woo-lexware-connector'));
     }
+    // Rate-Limiting für Admin-Download (niedriger Schwellwert)
+    if (class_exists('WLC_Security') && !WLC_Security::check_rate_limit('admin_download_invoice', get_current_user_id(), 20, 60)) {
+        wp_die(__('Zu viele Anfragen. Bitte warten.', 'woo-lexware-connector'));
+    }
     $order = wc_get_order($order_id);
     if (!$order) {
         wp_die(__('Bestellung nicht gefunden', 'woo-lexware-connector'));
@@ -476,6 +500,15 @@ function wlc_ajax_download_invoice_pdf() {
     $pdf_path = $api_client->download_invoice_pdf($lexware_invoice_id);
     if (is_wp_error($pdf_path)) {
         wp_die($pdf_path->get_error_message());
+    }
+    $upload_dir = wp_upload_dir();
+    $pdf_dir = $upload_dir['basedir'] . '/lexware-invoices';
+    if (class_exists('WLC_Security')) {
+        $safe_path = WLC_Security::sanitize_file_path($pdf_path, $pdf_dir);
+        if ($safe_path === false) {
+            wp_die(__('Ungültiger Dateipfad', 'woo-lexware-connector'));
+        }
+        $pdf_path = $safe_path;
     }
     header('Content-Type: application/pdf');
     header('Content-Disposition: inline; filename="rechnung_' . $order->get_order_number() . '.pdf"');

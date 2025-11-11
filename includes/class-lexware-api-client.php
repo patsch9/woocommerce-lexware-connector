@@ -176,13 +176,13 @@ public function sync_contact($order) {
         
         // Hole vollständige Rechnungsdaten mit Nummer (nach Finalisierung)
         if ($finalize) {
-            // Warte kurz, damit Lexoffice die Nummer generieren kann
-            sleep(1);
-            
-            $invoice_details = $this->request('GET', 'invoices/' . $invoice_id);
-            
-            if (!is_wp_error($invoice_details) && isset($invoice_details['voucherNumber'])) {
-                $invoice_number = $invoice_details['voucherNumber'];
+            for ($i = 0; $i < 5; $i++) {
+                $invoice_details = $this->request('GET', 'invoices/' . $invoice_id);
+                if (!is_wp_error($invoice_details) && isset($invoice_details['voucherNumber']) && $invoice_details['voucherNumber']) {
+                    $invoice_number = $invoice_details['voucherNumber'];
+                    break;
+                }
+                sleep(1);
             }
         }
         
@@ -224,12 +224,14 @@ public function sync_contact($order) {
         $credit_note_id = $response['id'];
         $credit_note_number = '';
         
-        // Hole vollständige Gutschriftsdaten
-        sleep(1);
-        $credit_note_details = $this->request('GET', 'credit-notes/' . $credit_note_id);
-        
-        if (!is_wp_error($credit_note_details) && isset($credit_note_details['voucherNumber'])) {
-            $credit_note_number = $credit_note_details['voucherNumber'];
+        // Hole vollständige Gutschriftsdaten (robustes Polling)
+        for ($i = 0; $i < 5; $i++) {
+            $credit_note_details = $this->request('GET', 'credit-notes/' . $credit_note_id);
+            if (!is_wp_error($credit_note_details) && isset($credit_note_details['voucherNumber']) && $credit_note_details['voucherNumber']) {
+                $credit_note_number = $credit_note_details['voucherNumber'];
+                break;
+            }
+            sleep(1);
         }
         
         $order->update_meta_data('_wlc_lexware_credit_note_id', $credit_note_id);
@@ -500,7 +502,9 @@ public function sync_contact($order) {
         update_option('wlc_error_logs', $errors);
         if (get_option('wlc_email_on_error', 'yes') === 'yes') {
             $admin_email = get_option('admin_email');
-            wp_mail($admin_email,'[WooCommerce Lexware Connector] Fehler',sprintf("Fehler: %s\n\nNachricht: %s\n\nZeit: %s", $title, $message, current_time('mysql')));
+            if (is_email($admin_email)) {
+                wp_mail($admin_email,'[WooCommerce Lexware Connector] Fehler',sprintf("Fehler: %s\n\nNachricht: %s\n\nZeit: %s", $title, $message, current_time('mysql')));
+            }
         }
     }
 }
