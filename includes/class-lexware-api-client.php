@@ -106,12 +106,14 @@ class WLC_Lexware_API_Client {
         $finalize = get_option('wlc_finalize_immediately', 'yes') === 'yes';
         $order_date = $order->get_date_created();
         $voucher_date = $this->format_lexware_date($order_date->getTimestamp());
+        $is_company = !empty($order->get_billing_company());
+        $tax_type = $is_company ? 'net' : 'gross';
         $invoice_data = array(
             'voucherDate' => $voucher_date,
             'address' => $this->format_address($order),
             'lineItems' => $this->format_line_items($order),
             'totalPrice' => array('currency' => $order->get_currency()),
-            'taxConditions' => array('taxType' => 'net'),
+            'taxConditions' => array('taxType' => $tax_type),
             'shippingConditions' => array('shippingDate' => $voucher_date, 'shippingType' => 'delivery'),
             'title' => get_option('wlc_invoice_title', 'Rechnung'),
             'introduction' => get_option('wlc_invoice_introduction', 'Vielen Dank für Ihre Bestellung.'),
