@@ -95,20 +95,36 @@ class WooCommerce_Lexware_Connector {
         // Lade Plugin-Klassen
         $this->load_dependencies();
 
+        // Registriere E-Mail-Klasse in WooCommerce
+        add_filter('woocommerce_email_classes', array($this, 'register_invoice_email'));
+
         // Initialisiere Komponenten
         $this->init_components();
     }
 
-    /**
-     * Lade alle Abhängigkeiten
-     */
-    private function load_dependencies() {
-        require_once WLC_PLUGIN_DIR . 'includes/class-lexware-api-client.php';
-        require_once WLC_PLUGIN_DIR . 'includes/class-woo-lexware-integration.php';
-        require_once WLC_PLUGIN_DIR . 'includes/class-admin-settings.php';
-        require_once WLC_PLUGIN_DIR . 'includes/class-customer-area.php';
-        require_once WLC_PLUGIN_DIR . 'includes/class-queue-handler.php';
+/**
+ * Lade alle Abhängigkeiten
+ */
+private function load_dependencies() {
+    require_once WLC_PLUGIN_DIR . 'includes/class-lexware-api-client.php';
+    require_once WLC_PLUGIN_DIR . 'includes/class-woo-lexware-integration.php';
+    require_once WLC_PLUGIN_DIR . 'includes/class-admin-settings.php';
+    require_once WLC_PLUGIN_DIR . 'includes/class-customer-area.php';
+    require_once WLC_PLUGIN_DIR . 'includes/class-queue-handler.php';
+    // WICHTIG: class-invoice-email.php NICHT hier laden!
+}
+
+/**
+ * Registriere E-Mail-Klasse in WooCommerce
+ */
+public function register_invoice_email($email_classes) {
+    // Lade E-Mail-Klasse erst hier (lazy loading)
+    if (!class_exists('WLC_Invoice_Email')) {
+        require_once WLC_PLUGIN_DIR . 'includes/class-invoice-email.php';
     }
+    $email_classes['WLC_Invoice_Email'] = new WLC_Invoice_Email();
+    return $email_classes;
+}
 
     /**
      * Initialisiere Komponenten
@@ -151,6 +167,9 @@ class WooCommerce_Lexware_Connector {
 
         // Setze Standard-Einstellungen
         $this->set_default_options();
+
+        // Erstelle E-Mail-Templates-Verzeichnis
+        $this->create_email_templates_directory();
 
         // Flush Rewrite Rules
         flush_rewrite_rules();
@@ -204,6 +223,22 @@ class WooCommerce_Lexware_Connector {
     }
 
     /**
+     * Erstelle E-Mail-Templates-Verzeichnis
+     */
+    private function create_email_templates_directory() {
+        $template_dir = WLC_PLUGIN_DIR . 'templates/emails';
+        $plain_dir = $template_dir . '/plain';
+
+        if (!file_exists($template_dir)) {
+            wp_mkdir_p($template_dir);
+        }
+
+        if (!file_exists($plain_dir)) {
+            wp_mkdir_p($plain_dir);
+        }
+    }
+
+    /**
      * Erstelle Datenbank-Tabellen mit verbesserter Sicherheit
      */
     private function create_database_tables() {
@@ -251,7 +286,8 @@ class WooCommerce_Lexware_Connector {
             'wlc_enable_logging' => 'yes',
             'wlc_email_on_error' => 'yes',
             'wlc_retry_attempts' => '3',
-            'wlc_shipping_as_line_item' => 'yes'
+            'wlc_shipping_as_line_item' => 'yes',
+            'wlc_auto_send_email' => 'no'
         );
 
         foreach ($defaults as $key => $value) {

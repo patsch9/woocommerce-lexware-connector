@@ -122,7 +122,7 @@ class WLC_WooCommerce_Integration {
                 } 
                 ?></p>
                 <?php if ($lexware_credit_note_id): ?>
-                    <p><strong><?php _e('Gutschrift ID:', 'woo-lexware-connector'); ?></strong><br>odede><?php echo esc_html($lexware_credit_note_id); ?></code></p>
+                    <p><strong><?php _e('Gutschrift ID:', 'woo-lexware-connector'); ?></strong><br><code><?php echo esc_html($lexware_credit_note_id); ?></code></p>
                 <?php endif; ?>
                 
                 <p><a href="https://app.lexoffice.de/voucher/#/<?php echo esc_attr($lexware_invoice_id); ?>" target="_blank" class="button button-secondary"><?php _e('In Lexware öffnen', 'woo-lexware-connector'); ?></a></p>
@@ -130,9 +130,12 @@ class WLC_WooCommerce_Integration {
                 
                 <?php if ($invoice_voided !== 'yes'): ?>
                     <p><button type="button" class="button button-secondary wlc-void-invoice" data-order-id="<?php echo esc_attr($order_id); ?>"><?php _e('Rechnung stornieren', 'woo-lexware-connector'); ?></button></p>
+                    
+                    <!-- E-Mail-Button -->
+                    <p><button type="button" class="button button-secondary wlc-send-invoice-email" data-order-id="<?php echo esc_attr($order_id); ?>"><?php _e('📧 Rechnung per E-Mail senden', 'woo-lexware-connector'); ?></button></p>
                 <?php endif; ?>
                 
-                <!-- NEU: Verknüpfung löschen Button -->
+                <!-- Verknüpfung löschen Button -->
                 <p><button type="button" class="button button-secondary wlc-unlink-invoice" data-order-id="<?php echo esc_attr($order_id); ?>"><?php _e('🔗 Verknüpfung löschen', 'woo-lexware-connector'); ?></button></p>
                 <p style="font-size: 11px; color: #666;">
                     <?php _e('Löscht nur die Verknüpfung zur Rechnung, nicht die Rechnung selbst in Lexware.', 'woo-lexware-connector'); ?>
@@ -214,7 +217,41 @@ class WLC_WooCommerce_Integration {
                 });
             });
             
-            // NEU: Verknüpfung löschen
+            // E-Mail senden
+            $('.wlc-send-invoice-email').on('click', function() {
+                var orderId = $(this).data('order-id');
+                var button = $(this);
+                
+                if (!confirm('<?php _e('Rechnung jetzt per E-Mail an den Kunden senden?', 'woo-lexware-connector'); ?>')) {
+                    return;
+                }
+                
+                button.prop('disabled', true).text('<?php _e('Wird gesendet...', 'woo-lexware-connector'); ?>');
+                
+                $.ajax({
+                    url: ajaxurl,
+                    method: 'POST',
+                    data: {
+                        action: 'wlc_send_invoice_email',
+                        order_id: orderId,
+                        nonce: '<?php echo wp_create_nonce('wlc_manual_action'); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert('<?php _e('E-Mail wurde versendet', 'woo-lexware-connector'); ?>');
+                        } else {
+                            alert(response.data.message || '<?php _e('Fehler beim E-Mail-Versand', 'woo-lexware-connector'); ?>');
+                        }
+                        button.prop('disabled', false).text('<?php _e('📧 Rechnung per E-Mail senden', 'woo-lexware-connector'); ?>');
+                    },
+                    error: function() {
+                        alert('<?php _e('Fehler beim E-Mail-Versand', 'woo-lexware-connector'); ?>');
+                        button.prop('disabled', false).text('<?php _e('📧 Rechnung per E-Mail senden', 'woo-lexware-connector'); ?>');
+                    }
+                });
+            });
+            
+            // Verknüpfung löschen
             $('.wlc-unlink-invoice').on('click', function() {
                 var orderId = $(this).data('order-id');
                 var button = $(this);
@@ -354,7 +391,42 @@ function wlc_ajax_manual_void_invoice() {
     wp_send_json_success(array('message' => __('Rechnung wurde storniert', 'woo-lexware-connector')));
 }
 
-// NEU: AJAX-Handler für Verknüpfung löschen
+// AJAX-Handler für E-Mail-Versand
+add_action('wp_ajax_wlc_send_invoice_email', 'wlc_ajax_send_invoice_email');
+function wlc_ajax_send_invoice_email() {
+    check_ajax_referer('wlc_manual_action', 'nonce');
+    
+    if (!current_user_can('manage_woocommerce')) {
+        wp_send_json_error(array('message' => __('Keine Berechtigung', 'woo-lexware-connector')));
+    }
+    
+    $order_id = intval($_POST['order_id']);
+    $order = wc_get_order($order_id);
+    
+    if (!$order) {
+        wp_send_json_error(array('message' => __('Bestellung nicht gefunden', 'woo-lexware-connector')));
+    }
+    
+    // Prüfe ob Rechnung existiert
+    $invoice_id = $order->get_meta('_wlc_lexware_invoice_id');
+    if (!$invoice_id) {
+        wp_send_json_error(array('message' => __('Keine Rechnung vorhanden', 'woo-lexware-connector')));
+    }
+    
+    // E-Mail versenden
+    $mailer = WC()->mailer();
+    $emails = $mailer->get_emails();
+    
+    if (isset($emails['WLC_Invoice_Email'])) {
+        $emails['WLC_Invoice_Email']->trigger($order_id, $order);
+        $order->add_order_note(__('Rechnung per E-Mail versendet', 'woo-lexware-connector'));
+        wp_send_json_success(array('message' => __('E-Mail wurde versendet', 'woo-lexware-connector')));
+    } else {
+        wp_send_json_error(array('message' => __('E-Mail-Klasse nicht gefunden', 'woo-lexware-connector')));
+    }
+}
+
+// AJAX-Handler für Verknüpfung löschen
 add_action('wp_ajax_wlc_unlink_invoice', 'wlc_ajax_unlink_invoice');
 function wlc_ajax_unlink_invoice() {
     check_ajax_referer('wlc_manual_action', 'nonce');

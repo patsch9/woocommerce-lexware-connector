@@ -155,6 +155,12 @@ class WLC_Queue_Handler {
             return $result;
         } else {
             $this->mark_as_completed($item->id, $result);
+            
+            // Automatischer E-Mail-Versand nach erfolgreicher Rechnungserstellung
+            if ($item->action === 'create_invoice' && get_option('wlc_auto_send_email', 'no') === 'yes') {
+                $this->send_invoice_email($order);
+            }
+            
             return true;
         }
     }
@@ -213,6 +219,27 @@ class WLC_Queue_Handler {
         $order->save();
         
         return $this->handle_create_invoice($order, $api_client, $item);
+    }
+    
+    private function send_invoice_email($order) {
+        // Prüfe ob WooCommerce Mailer verfügbar ist
+        if (!function_exists('WC')) {
+            return;
+        }
+        
+        $mailer = WC()->mailer();
+        $emails = $mailer->get_emails();
+        
+        // Prüfe ob E-Mail-Klasse registriert ist
+        if (!isset($emails['WLC_Invoice_Email'])) {
+            return;
+        }
+        
+        // Sende E-Mail
+        $emails['WLC_Invoice_Email']->trigger($order->get_id(), $order);
+        
+        // Order-Note hinzufügen
+        $order->add_order_note(__('Rechnung automatisch per E-Mail versendet', 'woo-lexware-connector'));
     }
     
     private function mark_as_completed($item_id, $result_id) {

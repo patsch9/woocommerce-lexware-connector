@@ -66,6 +66,7 @@ class WLC_Admin_Settings {
         register_setting('wlc_sync_settings', 'wlc_shipping_as_line_item');
         register_setting('wlc_sync_settings', 'wlc_enable_logging');
         register_setting('wlc_sync_settings', 'wlc_email_on_error');
+        register_setting('wlc_sync_settings', 'wlc_auto_send_email');
     }
 
     private function register_payment_method_settings() {
@@ -176,12 +177,12 @@ class WLC_Admin_Settings {
                     </div>
                     <?php if (!empty($api_key)): ?>
                         <p class="description" style="color: green; margin-top: 8px;">
-                            &#10003; <?php _e('API Key gespeichert', 'woo-lexware-connector'); ?>
+                            ✓ <?php _e('API Key gespeichert', 'woo-lexware-connector'); ?>
                             <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px; word-break: break-all;"><?php echo esc_html($api_key); ?></code>
                         </p>
                     <?php else: ?>
                         <p class="description" style="color: #d63638; margin-top: 8px;">
-                            &#10007; <?php _e('Kein API Key konfiguriert', 'woo-lexware-connector'); ?>
+                            ✗ <?php _e('Kein API Key konfiguriert', 'woo-lexware-connector'); ?>
                         </p>
                     <?php endif; ?>
                     <p class="description" style="margin-top: 8px;">
@@ -346,7 +347,7 @@ class WLC_Admin_Settings {
         }
         ?>
         <hr style="margin: 30px 0;">
-        <h3>&#128179; <?php _e('Zahlungsmethoden-spezifische Einstellungen', 'woo-lexware-connector'); ?></h3>
+        <h3>💳 <?php _e('Zahlungsmethoden-spezifische Einstellungen', 'woo-lexware-connector'); ?></h3>
         <p class="description">
             <?php _e('Konfiguriere individuelle Zahlungsbedingungen für jede Zahlungsmethode. Leer = Standard-Einstellungen verwenden.', 'woo-lexware-connector'); ?>
         </p>
@@ -392,7 +393,7 @@ class WLC_Admin_Settings {
             </tbody>
         </table>
         <p class="description" style="margin-top: 10px;">
-            &#128161; <strong>Beispiele:</strong> PayPal: "Bereits bezahlt per PayPal" + 0 Tage | Rechnung: "Zahlbar innerhalb von 14 Tagen" + 14 Tage
+            💡 <strong>Beispiele:</strong> PayPal: "Bereits bezahlt per PayPal" + 0 Tage | Rechnung: "Zahlbar innerhalb von 14 Tagen" + 14 Tage
         </p>
         <?php
     }
@@ -458,6 +459,21 @@ class WLC_Admin_Settings {
                                value="yes" <?php checked(get_option('wlc_email_on_error', 'yes'), 'yes'); ?>>
                         <?php _e('Ja, Admin per E-Mail über Fehler benachrichtigen', 'woo-lexware-connector'); ?>
                     </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label for="wlc_auto_send_email"><?php _e('Rechnung automatisch per E-Mail versenden', 'woo-lexware-connector'); ?></label>
+                </th>
+                <td>
+                    <label>
+                        <input type="checkbox" id="wlc_auto_send_email" name="wlc_auto_send_email" 
+                               value="yes" <?php checked(get_option('wlc_auto_send_email', 'no'), 'yes'); ?>>
+                        <?php _e('Ja, Rechnung automatisch nach Erstellung per E-Mail an Kunden senden', 'woo-lexware-connector'); ?>
+                    </label>
+                    <p class="description">
+                        <?php _e('Die E-Mail-Vorlage kann unter WooCommerce → Einstellungen → E-Mails angepasst werden.', 'woo-lexware-connector'); ?>
+                    </p>
                 </td>
             </tr>
         </table>
