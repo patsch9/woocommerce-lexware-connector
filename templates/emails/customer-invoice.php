@@ -9,10 +9,12 @@ if (!defined('ABSPATH')) {
 
 do_action('woocommerce_email_header', $email_heading, $email); ?>
 
+/* translators: %s: Vorname des Kunden */
 <p><?php printf(__('Hallo %s,', 'lexware-connector-for-woocommerce'), esc_html($order->get_billing_first_name())); ?></p>
 
 <p><?php _e('vielen Dank für Ihre Bestellung. Im Anhang finden Sie Ihre Rechnung als PDF.', 'lexware-connector-for-woocommerce'); ?></p>
 
+/* translators: %s: Bestellnummer */
 <h2><?php printf(__('Bestellung #%s', 'lexware-connector-for-woocommerce'), esc_html($order->get_order_number())); ?></h2>
 
 <?php
