@@ -34,7 +34,7 @@ class WLC_Queue_Handler {
     public function add_cron_interval($schedules) {
         $schedules['every_minute'] = array(
             'interval' => 60,
-            'display' => __('Jede Minute', 'woo-lexware-connector')
+            'display' => __('Jede Minute', 'lexware-connector-for-woocommerce')
         );
         return $schedules;
     }
@@ -105,7 +105,7 @@ class WLC_Queue_Handler {
         );
         
         if (!$item) {
-            return new WP_Error('no_items', __('Keine Items in Queue', 'woo-lexware-connector'));
+            return new WP_Error('no_items', __('Keine Items in Queue', 'lexware-connector-for-woocommerce'));
         }
         
         $instance = self::get_instance();
@@ -119,8 +119,8 @@ class WLC_Queue_Handler {
         $order = wc_get_order($item->order_id);
         
         if (!$order) {
-            $this->mark_as_failed($item->id, __('Bestellung nicht gefunden', 'woo-lexware-connector'));
-            return new WP_Error('order_not_found', __('Bestellung nicht gefunden', 'woo-lexware-connector'));
+            $this->mark_as_failed($item->id, __('Bestellung nicht gefunden', 'lexware-connector-for-woocommerce'));
+            return new WP_Error('order_not_found', __('Bestellung nicht gefunden', 'lexware-connector-for-woocommerce'));
         }
         
         $api_client = new WLC_Lexware_API_Client();
@@ -193,7 +193,7 @@ class WLC_Queue_Handler {
         $lexware_invoice_id = $order->get_meta('_wlc_lexware_invoice_id');
         
         if (!$lexware_invoice_id) {
-            return new WP_Error('no_invoice', __('Keine Rechnung vorhanden', 'woo-lexware-connector'));
+            return new WP_Error('no_invoice', __('Keine Rechnung vorhanden', 'lexware-connector-for-woocommerce'));
         }
         
         $credit_note_result = $api_client->create_credit_note($order, $lexware_invoice_id);
@@ -239,7 +239,7 @@ class WLC_Queue_Handler {
         $emails['WLC_Invoice_Email']->trigger($order->get_id(), $order);
         
         // Order-Note hinzufügen
-        $order->add_order_note(__('Rechnung automatisch per E-Mail versendet', 'woo-lexware-connector'));
+        $order->add_order_note(__('Rechnung automatisch per E-Mail versendet', 'lexware-connector-for-woocommerce'));
     }
     
     private function mark_as_completed($item_id, $result_id) {
