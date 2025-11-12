@@ -1,25 +1,57 @@
-=== WooCommerce Lexware Connector ===
+=== Invoice Connector for Lexware ===
 Contributors: patsch9
-Tags: woocommerce, lexware, export
-Requires at least: 5.0
+Tags: woocommerce, invoicing, lexware, billing, api
+Requires at least: 5.8
 Tested up to: 6.4
-Stable tag: trunk
-License: MIT
-License URI: https://opensource.org/licenses/MIT
+Requires PHP: 7.4
+Stable tag: 1.0.0
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+Dieses Plugin verbindet WooCommerce mit der Lexware Office API und erstellt automatisch Rechnungen aus WooCommerce-Bestellungen.
 
 == Description ==
-Dieses Plugin stellt eine Schnittstelle zwischen WooCommerce und Lexware bereit.
+**Wichtig:** Dies ist ein inoffizielles Plugin und steht in keiner Verbindung zur Haufe-Lexware GmbH & Co. KG. Lexware® ist eine eingetragene Marke der Haufe-Lexware GmbH & Co. KG.
 
-== Haftungsausschluss ==
-Dieses Plugin wird ohne jede ausdrückliche oder stillschweigende Gewährleistung bereitgestellt. Die Nutzung erfolgt auf eigene Gefahr. Der Autor übernimmt keinerlei Verantwortung für etwaige Schäden, Folgeschäden oder Verluste, die durch die Verwendung dieses Plugins entstehen, gleich aus welchem Rechtsgrund.
+Funktionen:
+* Automatische Rechnungserstellung in Lexware
+* Kundendaten-Synchronisation
+* Queue-basiertes Fehlerhandling
+* Integration in den WooCommerce-Kundenbereich
+* Wiederholungsversuche bei Übertragungsfehlern
+* Automatische E-Mail-Benachrichtigung
+
+Voraussetzungen:
+* Aktiver Lexware-Account
+* Gültiger Lexware API-Key
+* Externe Datenübertragung zu Lexware-Servern erforderlich
+
+== Datenschutz ==
+Dieses Plugin überträgt Bestell- und Kundendaten an Lexware (lexware.de). Details siehe die Lexware-Datenschutzerklärung.
 
 == Installation ==
-1. Plugin herunterladen
-2. In WordPress hochladen und aktivieren
+1. Plugin hochladen und aktivieren
+2. WooCommerce und Lexware-API Key konfigurieren
+3. Trigger-Status für die automatische Rechnungserstellung wählen
 
 == Frequently Asked Questions ==
+= Benötige ich einen Lexware-Account? =
+Ja, ein aktiver Lexware-Account mit API-Zugang ist nötig.
+
+= Welche Daten werden übertragen? =
+Kunden- und Rechnungsdaten werden an die Lexware-API übermittelt.
+
+== Screenshots ==
+1. Einstellungsseite (coming soon)
+2. Queue-Übersicht (coming soon)
+3. Rechnungsansicht im Kundenbereich (coming soon)
 
 == Changelog ==
-1.0 Erste Version
+= 1.0.0 =
+* Erste öffentliche Version
+* Automatische Rechnungserstellung
+* Kundensynchronisation
+* Fehlerbehandlung
 
 == Upgrade Notice ==
+Erstes Release. Änderungen siehe Changelog.
