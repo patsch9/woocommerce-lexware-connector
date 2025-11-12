@@ -1,14 +1,14 @@
 <?php
 /**
- * Plugin Name: Invoice Connector for Lexware
- * Plugin URI: https://github.com/patsch9/woocommerce-lexware-connector
+ * Plugin Name: Invoice Connector for WooCemmerce and Lexware Office
+ * Plugin URI: https://github.com/patsch9/lexware-connector-for-woocommerce
  * Description: Automatische Rechnungserstellung in Lexware Office aus WooCommerce-Bestellungen mit vollständiger Synchronisation und Kundenbereichs-Integration
  * Version: 1.0.0
  * Author: Patrick Schmidt
  * Author URI: https://github.com/patsch9
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: woo-lexware-connector
+ * Text Domain: lexware-connector-for-woocommerce
  * Domain Path: /languages
  * Requires at least: 5.8
  * Requires PHP: 7.4
