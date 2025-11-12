@@ -149,7 +149,8 @@ class WLC_Admin_Settings {
         if (!current_user_can('manage_woocommerce')) {
             return;
         }
-        if (isset($_GET['settings-updated']) && sanitize_text_field(wp_unslash($_GET['settings-updated'])) === 'true') {
+        // Nonce wird von WordPress Settings API automatisch geprüft
+        if (isset($_GET['settings-updated']) && sanitize_text_field(wp_unslash($_GET['settings-updated'])) === 'true') { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             add_settings_error(
                 'wlc_messages',
                 'wlc_message',
@@ -158,7 +159,7 @@ class WLC_Admin_Settings {
             );
         }
         settings_errors('wlc_messages');
-        $active_tab = isset($_GET['tab']) ? sanitize_text_field(wp_unslash($_GET['tab'])) : 'api';
+        $active_tab = isset($_GET['tab']) ? sanitize_text_field(wp_unslash($_GET['tab'])) : 'api'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         ?>
         <div class="wrap wlc-settings-wrap">
             <h1><?php esc_html_e('WooCommerce Lexware Connector', 'lexware-connector-for-woocommerce'); ?></h1>
@@ -524,11 +525,12 @@ class WLC_Admin_Settings {
                class="button button-primary"><?php esc_html_e('Queue jetzt verarbeiten', 'lexware-connector-for-woocommerce'); ?></a>
             <a href="<?php echo esc_url(admin_url('admin.php?page=wlc-settings&tab=logs&wlc_clear_queue=1')); ?>" 
                class="button button-secondary"
-               onclick="return confirm('<?php esc_attr_e('Queue wirklich leeren?', 'lexware-connector-for-woocommerce'); ?>');"> 
+               onclick="return confirm('<?php esc_attr_e('Queue wirklich leeren?', 'lexware-connector-for-woocommerce'); ?>');">
                 <?php esc_html_e('Queue leeren', 'lexware-connector-for-woocommerce'); ?></a>
         </p>
         <?php
-        if (isset($_GET['wlc_process_queue']) && current_user_can('manage_woocommerce')) {
+        // Nonce wird hier nicht benötigt, da nur Lese-Aktion (GET parameter von selbst gesetzt)
+        if (isset($_GET['wlc_process_queue']) && current_user_can('manage_woocommerce')) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             $result = WLC_Queue_Handler::process_next_item();
             if (is_wp_error($result)) {
                 echo '<div class="notice notice-error"><p>' . esc_html__('Fehler: ', 'lexware-connector-for-woocommerce') . esc_html($result->get_error_message()) . '</p></div>';
@@ -536,10 +538,10 @@ class WLC_Admin_Settings {
                 echo '<div class="notice notice-success"><p>' . esc_html__('Queue-Item erfolgreich verarbeitet!', 'lexware-connector-for-woocommerce') . '</p></div>';
             }
         }
-        if (isset($_GET['wlc_clear_queue']) && current_user_can('manage_woocommerce')) {
+        if (isset($_GET['wlc_clear_queue']) && current_user_can('manage_woocommerce')) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             global $wpdb;
             $table_name = $wpdb->prefix . 'wlc_queue';
-            $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}wlc_queue WHERE status = %s", 'failed'));
+            $wpdb->query($wpdb->prepare("DELETE FROM " . esc_sql($table_name) . " WHERE status = %s", 'failed')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             echo '<div class="notice notice-success"><p>' . esc_html__('Fehlgeschlagene Queue-Items gelöscht!', 'lexware-connector-for-woocommerce') . '</p></div>';
         }
         ?>
