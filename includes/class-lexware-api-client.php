@@ -194,7 +194,8 @@ public function sync_contact($order) {
         // Notiz mit Rechnungsnummer
         $order->add_order_note(
             sprintf(
-                __('[Lexware Rechnung erstellt: %s (ID: %s)]', 'lexware-connector-for-woocommerce'),
+                /* translators: 1: Invoice number, 2: Invoice ID */
+                __('[Lexware Rechnung erstellt: %1$s (ID: %2$s)]', 'lexware-connector-for-woocommerce'),
                 $invoice_number ?: __('Entwurf', 'lexware-connector-for-woocommerce'),
                 $invoice_id
             )
@@ -212,6 +213,7 @@ public function sync_contact($order) {
             'totalPrice' => array('currency' => $order->get_currency()),
             'taxConditions' => array('taxType' => 'net'),
             'title' => __('Gutschrift / Stornierung', 'lexware-connector-for-woocommerce'),
+            /* translators: %s: Original invoice ID */
             'introduction' => sprintf(__('Gutschrift zur Rechnung (Lexware ID: %s)', 'lexware-connector-for-woocommerce'), $original_invoice_id)
         );
         
@@ -240,7 +242,8 @@ public function sync_contact($order) {
         
         $order->add_order_note(
             sprintf(
-                __('Lexware Gutschrift erstellt: %s (ID: %s)', 'lexware-connector-for-woocommerce'),
+                /* translators: 1: Credit note number, 2: Credit note ID */
+                __('Lexware Gutschrift erstellt: %1$s (ID: %2$s)', 'lexware-connector-for-woocommerce'),
                 $credit_note_number ?: __('Entwurf', 'lexware-connector-for-woocommerce'),
                 $credit_note_id
             )
