@@ -194,8 +194,8 @@ public function sync_contact($order) {
         // Notiz mit Rechnungsnummer
         $order->add_order_note(
             sprintf(
-                __('[Lexware Rechnung erstellt: %s (ID: %s)]', 'woo-lexware-connector'),
-                $invoice_number ?: __('Entwurf', 'woo-lexware-connector'),
+                __('[Lexware Rechnung erstellt: %s (ID: %s)]', 'lexware-connector-for-woocommerce'),
+                $invoice_number ?: __('Entwurf', 'lexware-connector-for-woocommerce'),
                 $invoice_id
             )
         );
@@ -211,8 +211,8 @@ public function sync_contact($order) {
             'lineItems' => $this->format_line_items($order, true),
             'totalPrice' => array('currency' => $order->get_currency()),
             'taxConditions' => array('taxType' => 'net'),
-            'title' => __('Gutschrift / Stornierung', 'woo-lexware-connector'),
-            'introduction' => sprintf(__('Gutschrift zur Rechnung (Lexware ID: %s)', 'woo-lexware-connector'), $original_invoice_id)
+            'title' => __('Gutschrift / Stornierung', 'lexware-connector-for-woocommerce'),
+            'introduction' => sprintf(__('Gutschrift zur Rechnung (Lexware ID: %s)', 'lexware-connector-for-woocommerce'), $original_invoice_id)
         );
         
         $response = $this->request('POST', 'credit-notes?finalize=true', $credit_note_data);
@@ -240,8 +240,8 @@ public function sync_contact($order) {
         
         $order->add_order_note(
             sprintf(
-                __('Lexware Gutschrift erstellt: %s (ID: %s)', 'woo-lexware-connector'),
-                $credit_note_number ?: __('Entwurf', 'woo-lexware-connector'),
+                __('Lexware Gutschrift erstellt: %s (ID: %s)', 'lexware-connector-for-woocommerce'),
+                $credit_note_number ?: __('Entwurf', 'lexware-connector-for-woocommerce'),
                 $credit_note_id
             )
         );
@@ -258,7 +258,7 @@ public function sync_contact($order) {
         
         // Korrektur: documentFileId ist in ['files']['documentFileId']
         if (empty($invoice['files']['documentFileId'])) {
-            return new WP_Error('no_pdf', __('PDF noch nicht verfügbar', 'woo-lexware-connector'));
+            return new WP_Error('no_pdf', __('PDF noch nicht verfügbar', 'lexware-connector-for-woocommerce'));
         }
         
         $pdf_response = $this->request('GET', 'files/' . $invoice['files']['documentFileId'], null, true);
@@ -330,7 +330,7 @@ public function sync_contact($order) {
                 'type' => 'custom',
                 'name' => $item->get_name(),
                 'quantity' => $item->get_quantity() * $multiplier,
-                'unitName' => __('Stück', 'woo-lexware-connector'),
+                'unitName' => __('Stück', 'lexware-connector-for-woocommerce'),
                 'unitPrice' => array(
                     'currency' => $order->get_currency(),
                     'netAmount' => $net_amount,
@@ -347,9 +347,9 @@ public function sync_contact($order) {
             
             $line_items[] = array(
                 'type' => 'custom',
-                'name' => __('Versandkosten', 'woo-lexware-connector'),
+                'name' => __('Versandkosten', 'lexware-connector-for-woocommerce'),
                 'quantity' => 1 * $multiplier,
-                'unitName' => __('Pauschal', 'woo-lexware-connector'),
+                'unitName' => __('Pauschal', 'lexware-connector-for-woocommerce'),
                 'unitPrice' => array(
                     'currency' => $order->get_currency(),
                     'netAmount' => $shipping_net,
@@ -401,7 +401,7 @@ public function sync_contact($order) {
         if (!empty($specific_terms)) {
             return $specific_terms;
         }
-        return __('Zahlbar innerhalb von 14 Tagen ohne Abzug.', 'woo-lexware-connector');
+        return __('Zahlbar innerhalb von 14 Tagen ohne Abzug.', 'lexware-connector-for-woocommerce');
     }
 
     private function get_payment_due_days_for_order($order) {
@@ -433,7 +433,7 @@ public function sync_contact($order) {
 
     private function request($method, $endpoint, $data = null, $raw_response = false) {
         if (empty($this->api_key)) {
-            return new WP_Error('no_api_key', __('Kein API-Key konfiguriert', 'woo-lexware-connector'));
+            return new WP_Error('no_api_key', __('Kein API-Key konfiguriert', 'lexware-connector-for-woocommerce'));
         }
         $url = self::API_BASE_URL . $endpoint;
         $args = array(
