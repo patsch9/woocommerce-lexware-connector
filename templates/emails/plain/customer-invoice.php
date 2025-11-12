@@ -9,6 +9,7 @@ if (!defined('ABSPATH')) {
 
 echo "= " . $email_heading . " =\n\n";
 
+/* translators: %s: Vorname des Kunden */
 printf(__('Hallo %s,', 'lexware-connector-for-woocommerce'), esc_html($order->get_billing_first_name()));
 
 echo "\n\n";
