@@ -47,12 +47,12 @@ class WLC_Customer_Area {
         
         ?>
         <section class="wlc-invoice-download" style="margin-top: 20px;">
-            <h2><?php _e('Rechnung', 'woo-lexware-connector'); ?></h2>
+            <h2><?php _e('Rechnung', 'lexware-connector-for-woocommerce'); ?></h2>
             <p>
                 <a href="<?php echo esc_url($download_url); ?>" 
                    class="button" 
                    target="_blank">
-                    <?php _e('Rechnung herunterladen (PDF)', 'woo-lexware-connector'); ?>
+                    <?php _e('Rechnung herunterladen (PDF)', 'lexware-connector-for-woocommerce'); ?>
                 </a>
             </p>
         </section>
@@ -66,7 +66,7 @@ class WLC_Customer_Area {
             $new_columns[$key] = $name;
             
             if ($key === 'order-total') {
-                $new_columns['invoice'] = __('Rechnung', 'woo-lexware-connector');
+                $new_columns['invoice'] = __('Rechnung', 'lexware-connector-for-woocommerce');
             }
         }
         
@@ -79,7 +79,7 @@ class WLC_Customer_Area {
         
         if ($lexware_invoice_id && $invoice_voided !== 'yes') {
             $download_url = $this->get_download_url($order->get_id());
-            echo '<a href="' . esc_url($download_url) . '" target="_blank">' . __('PDF', 'woo-lexware-connector') . '</a>';
+            echo '<a href="' . esc_url($download_url) . '" target="_blank">' . __('PDF', 'lexware-connector-for-woocommerce') . '</a>';
         } else {
             echo '–';
         }
@@ -94,24 +94,24 @@ class WLC_Customer_Area {
         $nonce = sanitize_text_field($_GET['nonce']);
         
         if (!wp_verify_nonce($nonce, 'wlc_download_' . $order_id)) {
-            wp_die(__('Ungültiger Sicherheitsschlüssel', 'woo-lexware-connector'));
+            wp_die(__('Ungültiger Sicherheitsschlüssel', 'lexware-connector-for-woocommerce'));
         }
         
         $order = wc_get_order($order_id);
         
         if (!$order) {
-            wp_die(__('Bestellung nicht gefunden', 'woo-lexware-connector'));
+            wp_die(__('Bestellung nicht gefunden', 'lexware-connector-for-woocommerce'));
         }
         
         // Prüfe ob User berechtigt ist
         if (!current_user_can('view_order', $order_id)) {
-            wp_die(__('Keine Berechtigung', 'woo-lexware-connector'));
+            wp_die(__('Keine Berechtigung', 'lexware-connector-for-woocommerce'));
         }
         
         $lexware_invoice_id = $order->get_meta('_wlc_lexware_invoice_id');
         
         if (!$lexware_invoice_id) {
-            wp_die(__('Keine Rechnung vorhanden', 'woo-lexware-connector'));
+            wp_die(__('Keine Rechnung vorhanden', 'lexware-connector-for-woocommerce'));
         }
         
         // Lade PDF herunter
