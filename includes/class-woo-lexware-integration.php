@@ -132,9 +132,10 @@ class WLC_WooCommerce_Integration {
             $order->update_meta_data('_wlc_manual_invoice_entry', 'yes');
             $order->save();
             
+            /* translators: 1: Lexware invoice ID, 2: Invoice number */
             $order->add_order_note(
                 sprintf(
-                    esc_html__('Rechnungsdaten manuell hinterlegt: ID %s, Nummer %s', 'lexware-connector-for-woocommerce'),
+                    esc_html__('Rechnungsdaten manuell hinterlegt: ID %1$s, Nummer %2$s', 'lexware-connector-for-woocommerce'),
                     $manual_invoice_id,
                     $manual_invoice_number
                 )
@@ -668,8 +669,11 @@ function wlc_ajax_download_invoice_pdf() {
 
 add_action('admin_notices', 'wlc_bulk_action_admin_notice');
 function wlc_bulk_action_admin_notice() {
-    if (!empty($_REQUEST['wlc_invoices_created'])) {
-        $count = intval($_REQUEST['wlc_invoices_created']);
+    // Nonce-Prüfung ist hier nicht nötig, da nur GET-Parameter gelesen werden
+    // und diese vom WordPress Core nach erfolgreicher Bulk-Action gesetzt werden
+    if (!empty($_REQUEST['wlc_invoices_created'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $count = intval($_REQUEST['wlc_invoices_created']); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        /* translators: %d: Number of invoices */
         printf(
             '<div class="notice notice-success is-dismissible"><p>%s</p></div>',
             esc_html(sprintf(
