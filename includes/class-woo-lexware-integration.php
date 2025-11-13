@@ -38,6 +38,8 @@ class WLC_WooCommerce_Integration {
     
     private function register_admin_hooks() {
         add_action('add_meta_boxes', array($this, 'add_order_metabox'));
+        add_action('save_post_shop_order', array($this, 'save_manual_invoice_data'), 10, 1);
+        add_action('woocommerce_process_shop_order_meta', array($this, 'save_manual_invoice_data'), 10, 1);
         add_filter('bulk_actions-edit-shop_order', array($this, 'add_bulk_action'));
         add_filter('handle_bulk_actions-edit-shop_order', array($this, 'handle_bulk_action'), 10, 3);
         add_filter('manage_edit-shop_order_columns', array($this, 'add_order_column'));
@@ -96,6 +98,55 @@ class WLC_WooCommerce_Integration {
         );
     }
     
+    /**
+     * Speichert manuell eingegebene Rechnungsdaten
+     */
+    public function save_manual_invoice_data($order_id) {
+        // Sicherheitsprüfung
+        if (!isset($_POST['wlc_manual_invoice_nonce']) || 
+            !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['wlc_manual_invoice_nonce'])), 'wlc_save_manual_invoice_' . $order_id)) {
+            return;
+        }
+        
+        // Berechtigungsprüfung
+        if (!current_user_can('edit_shop_orders')) {
+            return;
+        }
+        
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            return;
+        }
+        
+        // Prüfe ob bereits eine Rechnung existiert
+        $existing_invoice_id = $order->get_meta('_wlc_lexware_invoice_id');
+        if ($existing_invoice_id) {
+            return; // Keine Änderung wenn bereits eine Rechnung verknüpft ist
+        }
+        
+        // Hole die manuellen Eingaben
+        $manual_invoice_id = isset($_POST['wlc_manual_invoice_id']) ? 
+            sanitize_text_field(wp_unslash($_POST['wlc_manual_invoice_id'])) : '';
+        $manual_invoice_number = isset($_POST['wlc_manual_invoice_number']) ? 
+            sanitize_text_field(wp_unslash($_POST['wlc_manual_invoice_number'])) : '';
+        
+        // Speichere nur wenn beide Felder ausgefüllt sind
+        if (!empty($manual_invoice_id) && !empty($manual_invoice_number)) {
+            $order->update_meta_data('_wlc_lexware_invoice_id', $manual_invoice_id);
+            $order->update_meta_data('_wlc_lexware_invoice_number', $manual_invoice_number);
+            $order->update_meta_data('_wlc_manual_invoice_entry', 'yes');
+            $order->save();
+            
+            $order->add_order_note(
+                sprintf(
+                    esc_html__('Rechnungsdaten manuell hinterlegt: ID %s, Nummer %s', 'lexware-connector-for-woocommerce'),
+                    $manual_invoice_id,
+                    $manual_invoice_number
+                )
+            );
+        }
+    }
+    
     public function render_order_metabox($post_or_order) {
         if (is_a($post_or_order, 'WP_Post')) {
             $order = wc_get_order($post_or_order->ID);
@@ -109,11 +160,17 @@ class WLC_WooCommerce_Integration {
         $lexware_invoice_number = $order->get_meta('_wlc_lexware_invoice_number');
         $lexware_credit_note_id = $order->get_meta('_wlc_lexware_credit_note_id');
         $invoice_voided = $order->get_meta('_wlc_lexware_invoice_voided');
+        $manual_entry = $order->get_meta('_wlc_manual_invoice_entry');
+        
+        wp_nonce_field('wlc_save_manual_invoice_' . $order_id, 'wlc_manual_invoice_nonce');
         ?>
         <div class="wlc-metabox">
             <?php if ($lexware_invoice_id): ?>
                 <p><strong><?php esc_html_e('Rechnungsnummer:', 'lexware-connector-for-woocommerce'); ?></strong><br><?php echo esc_html($lexware_invoice_number ?: '–'); ?></p>
                 <p><strong><?php esc_html_e('Lexware ID:', 'lexware-connector-for-woocommerce'); ?></strong><br><code><?php echo esc_html($lexware_invoice_id); ?></code></p>
+                <?php if ($manual_entry === 'yes'): ?>
+                    <p><em style="font-size: 11px; color: #666;"><?php esc_html_e('(Manuell hinterlegt)', 'lexware-connector-for-woocommerce'); ?></em></p>
+                <?php endif; ?>
                 <p><strong><?php esc_html_e('Status:', 'lexware-connector-for-woocommerce'); ?></strong><br><?php 
                 if ($invoice_voided === 'yes') { 
                     echo '<span style="color: red;">' . esc_html__('Storniert', 'lexware-connector-for-woocommerce') . '</span>'; 
@@ -140,6 +197,40 @@ class WLC_WooCommerce_Integration {
                 
             <?php else: ?>
                 <p><?php esc_html_e('Noch keine Rechnung erstellt.', 'lexware-connector-for-woocommerce'); ?></p>
+                
+                <div class="wlc-manual-invoice-fields" style="margin: 15px 0; padding: 10px; background: #f9f9f9; border-radius: 4px;">
+                    <p style="margin-top: 0; font-weight: bold;"><?php esc_html_e('Manuelle Eingabe:', 'lexware-connector-for-woocommerce'); ?></p>
+                    <p style="margin-bottom: 8px;">
+                        <label for="wlc_manual_invoice_id" style="display: block; margin-bottom: 4px; font-size: 12px;">
+                            <?php esc_html_e('Lexware Rechnungs-ID:', 'lexware-connector-for-woocommerce'); ?>
+                        </label>
+                        <input type="text" 
+                               id="wlc_manual_invoice_id" 
+                               name="wlc_manual_invoice_id" 
+                               class="widefat" 
+                               placeholder="z.B. 12345678-1234-1234-1234-123456789012"
+                               style="font-size: 12px;">
+                    </p>
+                    <p style="margin-bottom: 0;">
+                        <label for="wlc_manual_invoice_number" style="display: block; margin-bottom: 4px; font-size: 12px;">
+                            <?php esc_html_e('Rechnungsnummer:', 'lexware-connector-for-woocommerce'); ?>
+                        </label>
+                        <input type="text" 
+                               id="wlc_manual_invoice_number" 
+                               name="wlc_manual_invoice_number" 
+                               class="widefat" 
+                               placeholder="z.B. RE-2024-001"
+                               style="font-size: 12px;">
+                    </p>
+                    <p style="font-size: 11px; color: #666; margin-bottom: 0;">
+                        <?php esc_html_e('Beide Felder ausfüllen und Bestellung speichern, um eine manuelle Verknüpfung zu erstellen.', 'lexware-connector-for-woocommerce'); ?>
+                    </p>
+                </div>
+                
+                <p style="text-align: center; margin: 10px 0; color: #666; font-size: 11px;">
+                    <?php esc_html_e('— oder —', 'lexware-connector-for-woocommerce'); ?>
+                </p>
+                
                 <p><button type="button" class="button button-primary wlc-create-invoice" data-order-id="<?php echo esc_attr($order_id); ?>"><?php esc_html_e('✨ Rechnung jetzt erstellen', 'lexware-connector-for-woocommerce'); ?></button></p>
             <?php endif; ?>
         </div>
@@ -148,6 +239,7 @@ class WLC_WooCommerce_Integration {
             .wlc-metabox p { margin: 10px 0; }
             .wlc-metabox code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 11px; word-break: break-all;}
             .wlc-metabox .button { width: 100%; text-align: center; box-sizing: border-box;}
+            .wlc-manual-invoice-fields input.widefat { width: 100%; box-sizing: border-box; }
         </style>
         
         <script>
@@ -453,6 +545,7 @@ function wlc_ajax_unlink_invoice() {
     $order->delete_meta_data('_wlc_lexware_credit_note_id');
     $order->delete_meta_data('_wlc_lexware_invoice_voided');
     $order->delete_meta_data('_wlc_lexware_contact_id');
+    $order->delete_meta_data('_wlc_manual_invoice_entry');
     $order->save();
     
     $order->add_order_note(esc_html__('Verknüpfung zur Lexware-Rechnung wurde entfernt.', 'lexware-connector-for-woocommerce'));
