@@ -4,7 +4,7 @@ Tags: woocommerce, invoicing, lexware, billing, api
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,10 @@ Kunden- und Rechnungsdaten werden an die Lexware-API übermittelt.
 * Automatische Rechnungserstellung
 * Kundensynchronisation
 * Fehlerbehandlung
+== 1.0.1 ==
+* Fehlerbehebung, deaktivierung von Automatisches aktualisierungen bei Änderungen in der Bestellung. Die Führte zu einem Automatischem Storno
+* Hinzufügen eine "Rechnung aktualisieren" Buttons
+* Möglichkeit des manuellen hinterlegens von Rechnungsdaten
 
 == Upgrade Notice ==
 Erstes Release. Änderungen siehe Changelog.
