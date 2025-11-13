@@ -525,7 +525,7 @@ class WLC_Admin_Settings {
                class="button button-primary"><?php esc_html_e('Queue jetzt verarbeiten', 'lexware-connector-for-woocommerce'); ?></a>
             <a href="<?php echo esc_url(admin_url('admin.php?page=wlc-settings&tab=logs&wlc_clear_queue=1')); ?>" 
                class="button button-secondary"
-               onclick="return confirm('<?php esc_attr_e('Queue wirklich leeren?', 'lexware-connector-for-woocommerce'); ?>');">
+               onclick="return confirm('<?php esc_attr_e('Alle pending und failed Queue-Items wirklich löschen?', 'lexware-connector-for-woocommerce'); ?>');"> 
                 <?php esc_html_e('Queue leeren', 'lexware-connector-for-woocommerce'); ?></a>
         </p>
         <?php
@@ -541,8 +541,9 @@ class WLC_Admin_Settings {
         if (isset($_GET['wlc_clear_queue']) && current_user_can('manage_woocommerce')) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             global $wpdb;
             $table_name = $wpdb->prefix . 'wlc_queue';
-            $wpdb->query($wpdb->prepare("DELETE FROM " . esc_sql($table_name) . " WHERE status = %s", 'failed')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-            echo '<div class="notice notice-success"><p>' . esc_html__('Fehlgeschlagene Queue-Items gelöscht!', 'lexware-connector-for-woocommerce') . '</p></div>';
+            // Lösche sowohl pending als auch failed Items
+            $deleted = $wpdb->query($wpdb->prepare("DELETE FROM " . esc_sql($table_name) . " WHERE status IN (%s, %s)", 'pending', 'failed')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            echo '<div class="notice notice-success"><p>' . sprintf(esc_html__('%d Queue-Items gelöscht!', 'lexware-connector-for-woocommerce'), $deleted) . '</p></div>';
         }
         ?>
         <table class="wp-list-table widefat fixed striped">
